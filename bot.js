@@ -1,6 +1,9 @@
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GPT_SYSTEM_MESSAGE = process.env.GPT_SYSTEM_MESSAGE;
+
+console.log(GPT_SYSTEM_MESSAGE);
 
 const { REST, Routes } = require('discord.js');
 const { Client, GatewayIntentBits } = require('discord.js');
@@ -25,95 +28,91 @@ const options = {
   ]
 }
 
-const commands = [
-  {
-    name: 'gpt',
-    description: 'ChatGPTと会話を始める',
-  },
-];
-
 const client = new Discord.Client(options);
-
-
-(async () => {
-  try {
-    console.log('Started refreshing application (/) commands.');
-
-    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-
-    console.log('Successfully reloaded application (/) commands.');
-  } catch (error) {
-    console.error(error);
-  }
-})();
 
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
 
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+client.on('messageCreate', async (msg) => {
+  if(msg.author.bot) return;
+  if(msg.content.includes("@here") || msg.content.includes("@everyone") || msg.type == "REPLY") return;
 
-  if (interaction.commandName === 'gpt') {
-    await interaction.reply('会話用のスレッドを作成します');
-
-    const channel = interaction.channel;
-    try{
-      await channel.threads.create({
-        name: 'ChatGPTと話そう！',
-        autoArchiveDuration: 60,
-      });
-    } catch(error) {
-      await channel.send('コマンドの実行に失敗しました');
-    }
+  if(msg.mentions.has(client.user.id)) {
+    await startThread(msg);
+  } else if(msg.channel.ownerId == client.user.id){
+    await replyThreadMsg(msg);
   }
 });
 
+client.login(BOT_TOKEN);
 
 
+const startThread = async (msg) => {
+  const user_msg = removeMentionFromMessage(msg.content);
+  const gpt_reply = await getGptReply(
+    [
+      {
+        "role": "user",
+        "content": user_msg,
+      }
+    ]
+  );
+  const thread = await msg.startThread({
+    name: user_msg,
+    autoArchiveDuration: 60,
+  });
+  await thread.send(gpt_reply);
+};
 
-client.on('messageCreate', async (msg) => {
-  if(msg.author.bot) return;
-  if(msg.channel.ownerId != CLIENT_ID) return;
-
+const replyThreadMsg = async (msg) => {
   const channel = msg.channel;
   const msgCount = channel.messageCount;
+  const starterMsg = await channel.fetchStarterMessage();
   const messages = await channel.messages.fetch({limit: msgCount});
 
-  const gptMsg = [];
+  const inputMsgs = [];
   messages.forEach((v, k) => {
     const role = v.author.id == CLIENT_ID ? 'assistant' : 'user';
-    const content = v.content;
-    gptMsg.unshift(
+    const content = removeMentionFromMessage(v.content);
+    inputMsgs.unshift(
       {
         "role": role,
         "content": content,
       }
     );
   });
+  inputMsgs.unshift(
+    {
+      "role": 'user',
+      "content": removeMentionFromMessage(starterMsg.content),
+    }
+  );
 
-  console.log(gptMsg);
+  console.log(inputMsgs);
 
-  var reply = await getGptReply(gptMsg);
-  msg.channel.send(reply);
-});
-
-client.login(BOT_TOKEN);
+  const reply = await getGptReply(inputMsgs);
+  await msg.channel.send(reply);
+};
 
 
-
-const getGptReply =  async (msg) => {
-  msg.unshift(
+const getGptReply = async (inputMsgs) => {
+  inputMsgs.unshift(
     {
       "role": "system",
-      "content": settings.system_message,
+      "content": GPT_SYSTEM_MESSAGE,
     }
   );
   const completion = await openai.createChatCompletion({
     model: "gpt-3.5-turbo", //言語モデル
-    messages: msg,
+    messages: inputMsgs,
   });
  console.log(completion.data.choices[0].message.content); //コンソールに出力
  return completion.data.choices[0].message.content;
+}
+
+const removeMentionFromMessage = (str) => {
+  const rexp = /<@\d+>/g;
+  return str.replace(rexp,'').trim();
 }
