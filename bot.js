@@ -10,9 +10,6 @@ const { Client, GatewayIntentBits } = require('discord.js');
 const Discord = require("discord.js");
 const { Configuration, OpenAIApi } = require("openai");
 
-const settings = require('./config.js');
-
-
 const rest = new REST({ version: '10' }).setToken(BOT_TOKEN);
 
 const configuration = new Configuration({
