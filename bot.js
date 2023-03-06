@@ -101,17 +101,19 @@ const getGptReply = async (inputMsgs) => {
   );
   console.log(`input: ${JSON.stringify(inputMsgs)}`);
 
-  const completion = await openai.createChatCompletion({
-    model: "gpt-3.5-turbo", //言語モデル
-    messages: inputMsgs,
-  });
-
-  const reply = completion.data.choices[0].message.content;
-  const usage = completion.data.usage;
-  console.log(`reply: ${reply}`);
-  console.log(`usage: ${JSON.stringify(usage)}`);
-
-  return reply;
+  try{
+    const completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo", //言語モデル
+      messages: inputMsgs,
+    });
+    const reply = completion.data.choices[0].message.content;
+    const usage = completion.data.usage;
+    console.log(`reply: ${reply}`);
+    console.log(`usage: ${JSON.stringify(usage)}`);
+    return reply;
+  }catch(e){
+    return "エラーが発生しました";
+  }
 }
 
 const getCleanMessage = (str) => {
