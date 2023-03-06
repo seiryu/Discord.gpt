@@ -3,9 +3,7 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GPT_SYSTEM_MESSAGE = process.env.GPT_SYSTEM_MESSAGE;
 
-console.log(GPT_SYSTEM_MESSAGE);
-
-const { REST, Routes } = require('discord.js');
+const { REST, Routes, MessageType } = require('discord.js');
 const { Client, GatewayIntentBits } = require('discord.js');
 const Discord = require("discord.js");
 const { Configuration, OpenAIApi } = require("openai");
@@ -34,7 +32,10 @@ client.on('ready', () => {
 
 client.on('messageCreate', async (msg) => {
   if(msg.author.bot) return;
-  if(msg.content.includes("@here") || msg.content.includes("@everyone") || msg.type == "REPLY") return;
+  if(msg.type != MessageType.Default) return;
+  if(msg.content.includes("@here") || msg.content.includes("@everyone")) return;
+
+  console.log(`message: ${msg}`);
 
   if(msg.mentions.has(client.user.id)) {
     await startThread(msg);
@@ -47,15 +48,13 @@ client.login(BOT_TOKEN);
 
 
 const startThread = async (msg) => {
-  const user_msg = removeMentionFromMessage(msg.content);
-  const gpt_reply = await getGptReply(
-    [
-      {
-        "role": "user",
-        "content": user_msg,
-      }
-    ]
-  );
+  const user_msg = getCleanMessage(msg.content);
+  const gpt_reply = await getGptReply([
+    {
+      "role": "user",
+      "content": user_msg,
+    }
+  ]);
   const thread = await msg.startThread({
     name: user_msg,
     autoArchiveDuration: 60,
@@ -71,23 +70,21 @@ const replyThreadMsg = async (msg) => {
 
   const inputMsgs = [];
   messages.forEach((v, k) => {
-    const role = v.author.id == CLIENT_ID ? 'assistant' : 'user';
-    const content = removeMentionFromMessage(v.content);
+    if(v.type != MessageType.Default) return;
+
     inputMsgs.unshift(
       {
-        "role": role,
-        "content": content,
+        "role":  v.author.id == CLIENT_ID ? 'assistant' : 'user',
+        "content": getCleanMessage(v.content),
       }
     );
   });
   inputMsgs.unshift(
     {
       "role": 'user',
-      "content": removeMentionFromMessage(starterMsg.content),
+      "content": getCleanMessage(starterMsg.content),
     }
   );
-
-  console.log(inputMsgs);
 
   const reply = await getGptReply(inputMsgs);
   await msg.channel.send(reply);
@@ -101,15 +98,20 @@ const getGptReply = async (inputMsgs) => {
       "content": GPT_SYSTEM_MESSAGE,
     }
   );
+  console.log(`input: ${JSON.stringify(inputMsgs)}`);
+
   const completion = await openai.createChatCompletion({
     model: "gpt-3.5-turbo", //言語モデル
     messages: inputMsgs,
   });
- console.log(completion.data.choices[0].message.content); //コンソールに出力
- return completion.data.choices[0].message.content;
+
+  const reply = completion.data.choices[0].message.content;
+  console.log(`reply: ${reply}`);
+
+  return reply;
 }
 
-const removeMentionFromMessage = (str) => {
+const getCleanMessage = (str) => {
   const rexp = /<@\d+>/g;
   return str.replace(rexp,'').trim();
 }
