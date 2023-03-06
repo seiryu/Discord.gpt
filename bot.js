@@ -1,7 +1,7 @@
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const GPT_SYSTEM_MESSAGE = process.env.GPT_SYSTEM_MESSAGE;
+var GPT_SYSTEM_MESSAGE = process.env.GPT_SYSTEM_MESSAGE;
 
 const { REST, Routes, MessageType } = require('discord.js');
 const { Client, GatewayIntentBits } = require('discord.js');
@@ -107,7 +107,9 @@ const getGptReply = async (inputMsgs) => {
   });
 
   const reply = completion.data.choices[0].message.content;
+  const usage = completion.data.usage;
   console.log(`reply: ${reply}`);
+  console.log(`usage: ${JSON.stringify(usage)}`);
 
   return reply;
 }
