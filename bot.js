@@ -48,18 +48,19 @@ client.login(BOT_TOKEN);
 
 
 const startThread = async (msg) => {
-  const user_msg = getCleanMessage(msg.content);
-  const gpt_reply = await getGptReply([
+  const userMsg = getCleanMessage(msg.content);
+  const getReply = await getGptReply([
     {
       "role": "user",
-      "content": user_msg,
+      "content": userMsg,
     }
   ]);
+  const threadName = userMsg.length <= 15 ? userMsg : userMsg.sustr(0,15) + '...';
   const thread = await msg.startThread({
-    name: user_msg,
+    name: threadName,
     autoArchiveDuration: 60,
   });
-  await thread.send(gpt_reply);
+  await thread.send(getReply);
 };
 
 const replyThreadMsg = async (msg) => {
