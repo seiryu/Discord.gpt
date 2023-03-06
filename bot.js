@@ -55,7 +55,7 @@ const startThread = async (msg) => {
       "content": userMsg,
     }
   ]);
-  const threadName = userMsg.length <= 15 ? userMsg : userMsg.sustr(0,15) + '...';
+  const threadName = userMsg.length <= 15 ? userMsg : userMsg.substr(0,15) + '...';
   const thread = await msg.startThread({
     name: threadName,
     autoArchiveDuration: 60,
