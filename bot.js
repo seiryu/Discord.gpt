@@ -1,7 +1,9 @@
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-var GPT_SYSTEM_MESSAGE = process.env.GPT_SYSTEM_MESSAGE;
+const GPT_SYSTEM_MESSAGE = process.env.GPT_SYSTEM_MESSAGE;
+const GPT_TEMP = Number(process.env.GPT_TEMP);
+const GPT_MAX_TOKENS = Number(process.env.GPT_MAX_TOKENS);
 
 const { REST, Routes, MessageType } = require('discord.js');
 const { Client, GatewayIntentBits } = require('discord.js');
@@ -105,6 +107,8 @@ const getGptReply = async (inputMsgs) => {
     const completion = await openai.createChatCompletion({
       model: "gpt-3.5-turbo", //言語モデル
       messages: inputMsgs,
+      temperature: GPT_TEMP,
+      max_tokens: GPT_MAX_TOKENS
     });
     const reply = completion.data.choices[0].message.content;
     const usage = completion.data.usage;
@@ -112,11 +116,12 @@ const getGptReply = async (inputMsgs) => {
     console.log(`usage: ${JSON.stringify(usage)}`);
     return reply;
   }catch(e){
+    console.log(e);
     return "エラーが発生しました";
   }
 }
 
 const getCleanMessage = (str) => {
-  const rexp = /<@\d+>/g;
+  const rexp = /<@.+>/g;
   return str.replace(rexp,'').trim();
 }
