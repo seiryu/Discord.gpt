@@ -1,5 +1,4 @@
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const CLIENT_ID = process.env.CLIENT_ID;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GPT_SYSTEM_MESSAGE = process.env.GPT_SYSTEM_MESSAGE;
 const GPT_TEMP = Number(process.env.GPT_TEMP);
@@ -77,7 +76,7 @@ const replyThreadMsg = async (msg) => {
 
     inputMsgs.unshift(
       {
-        "role":  v.author.id == CLIENT_ID ? 'assistant' : 'user',
+        "role":  v.author.id == client.user.id ? 'assistant' : 'user',
         "content": getCleanMessage(v.content),
       }
     );
